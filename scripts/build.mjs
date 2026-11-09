@@ -1,5 +1,7 @@
 import { build } from "esbuild";
 import { readFile, writeFile } from "node:fs/promises";
+import postcss from "postcss";
+import tailwindcss from "tailwindcss";
 
 export async function buildSettings({ demo = false, write = true } = {}) {
   const result = await build({
@@ -7,7 +9,11 @@ export async function buildSettings({ demo = false, write = true } = {}) {
     format: "iife", target: ["es2020"],
     define: { "process.env.NODE_ENV": '"production"', __LOCAL_DEMO__: String(demo) }
   });
-  const css = await readFile("ui/styles.css", "utf8");
+  const styles = await readFile("ui/styles.css", "utf8");
+  const { css } = await postcss([tailwindcss({
+    content: ["./ui/**/*.{js,jsx}"],
+    theme: { extend: { colors: { coral: { 50: "#fff1f2", 500: "#ff385c", 600: "#da2448", 700: "#bd1e3e" } } } }
+  })]).process(styles, { from: "ui/styles.css" });
   const script = result.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
   const html = `<!doctype html>
 <html lang="en"><head><base target="_top"><meta charset="UTF-8">

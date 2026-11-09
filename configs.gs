@@ -9,6 +9,10 @@ class RentConfigStore {
       tenant: { name: "", address: "", phone: "", email: "" },
       landlord: { name: "", address: "", phone: "", email: "" },
       property: { address: "", amount: 0, fees: 0 },
+      payment: {
+        accountName: "", bankName: "", accountNumber: "", routingNumber: "",
+        routingNumberPaperElectronic: "", routingNumberWires: "", accountType: "", memo: ""
+      },
       dueDay: 1, sendDay: 25, sendHour: 9, timezone: "America/New_York",
       currency: "USD", invoices: { prefix: "RENT", suffix: 1 }
     };
@@ -78,6 +82,19 @@ class RentConfigStore {
       throw new Error("Starting invoice number must be an integer from 1 to 999999999.");
     }
     value.invoices.suffix = input.invoices.suffix;
+    // Older saved settings predate payment options; an absent section remains optional.
+    const payment = input.payment === undefined ? value.payment : input.payment;
+    Object.keys(value.payment).forEach(key => {
+      value.payment[key] = text(payment, key, false, key === "memo" ? 300 : 100);
+    });
+    ["routingNumber", "routingNumberPaperElectronic", "routingNumberWires"].forEach(key => {
+      if (value.payment[key] && !/^\d{9}$/.test(value.payment[key])) {
+        throw new Error(key + " must contain exactly nine digits when provided.");
+      }
+    });
+    if (!["", "checking", "savings"].includes(value.payment.accountType)) {
+      throw new Error("Account type must be checking or savings.");
+    }
     return value;
   }
 

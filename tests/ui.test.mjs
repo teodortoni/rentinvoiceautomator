@@ -103,4 +103,46 @@ test("production build contains no local demo implementation and reports missing
   t.after(() => dom.window.close());
   await waitFor(() => dom.window.document.querySelector('[role="alert"]'));
   assert.match(dom.window.document.querySelector('[role="alert"]').textContent, /Open this dialog through Google Docs/);
+  assert.doesNotMatch(production, /@tailwind|@apply/);
+  assert.match(production, /button\.primary/);
+  assert.match(production, /rgb\(218 36 72/);
+});
+
+test("all five settings sections are independently collapsible and invalid hidden fields reopen", async t => {
+  const f = await render(t);
+  const sections = [...f.document.querySelectorAll(".settings-section")];
+  assert.equal(sections.length, 5);
+  assert.deepEqual(sections.map(section => section.querySelector(".section-summary .text-base").textContent),
+    ["Tenant", "Landlord", "Invoice", "Template", "Payment options"]);
+  const tenant = sections[0];
+  tenant.open = false;
+  assert.equal(tenant.open, false);
+  assert.equal(sections[1].open, true);
+  f.input("tenant-name", "");
+  f.document.getElementById("tenant-name").dispatchEvent(new f.dom.window.Event("invalid", { cancelable: true }));
+  assert.equal(tenant.open, true);
+});
+
+test("bank details stay string-valued, account type is selectable, and account number is masked by default", async t => {
+  const f = await render(t);
+  f.input("payment-accountNumber", "000012345678");
+  f.input("payment-routingNumber", "001234567");
+  f.input("payment-bankName", "Example Bank");
+  const select = f.document.getElementById("payment-accountType");
+  select.value = "savings";
+  select.dispatchEvent(new f.dom.window.Event("change", { bubbles: true }));
+  await waitFor(() => !f.button("Save settings").disabled);
+  assert.equal(f.document.getElementById("payment-accountNumber").type, "password");
+  const checkbox = f.document.querySelector('input[type="checkbox"]');
+  checkbox.click();
+  await waitFor(() => f.document.getElementById("payment-accountNumber").type === "text");
+  f.document.querySelector("form").dispatchEvent(new f.dom.window.Event("submit", { bubbles: true, cancelable: true }));
+  await waitFor(() => f.document.body.textContent.includes("Settings saved privately"));
+  await waitFor(() => f.button("Save settings").disabled);
+  assert.equal(f.document.getElementById("payment-accountNumber").value, "000012345678");
+  assert.equal(f.document.getElementById("payment-accountNumber").type, "password");
+  assert.equal(f.document.getElementById("payment-routingNumber").value, "001234567");
+  assert.equal(f.document.getElementById("payment-accountType").value, "savings");
+  assert.match(f.document.body.textContent, /BANK_ROUTING_NUMBER_PAPER_ELECTRONIC/);
+  assert.match(f.document.body.textContent, /PAYMENT_MEMO/);
 });

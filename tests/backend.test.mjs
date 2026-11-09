@@ -415,3 +415,60 @@ test("export only returns the current user's data and never enables automation",
   assert.equal(f.api.exportRentData().history.length, 0);
   assert.equal(f.api.exportRentData().settings.tenant.email, "");
 });
+
+test("existing configurations gain empty optional payment fields without changing billing history", () => {
+  const f = fixture();
+  f.configure();
+  const saved = JSON.parse(f.properties.get("RENT_CONFIG"));
+  delete saved.settings.payment;
+  f.properties.set("RENT_CONFIG", JSON.stringify(saved));
+  const state = f.api.getRentDashboard();
+  assert.equal(state.settings.payment.accountType, "");
+  assert.equal(state.settings.payment.accountNumber, "");
+  assert.equal(Object.keys(state.settings.payment).length, 8);
+  f.send();
+  assert.equal(f.api.getRentDashboard().history[0].status, "sent");
+});
+
+test("payment values persist as strings and all bank tokens render correctly in PDFs", () => {
+  const payment = {
+    accountName: "Example Property LLC", bankName: "Example Bank",
+    accountNumber: "000012345678", routingNumber: "001234567",
+    routingNumberPaperElectronic: "002345678", routingNumberWires: "003456789",
+    accountType: "checking", memo: "Monthly rent - Unit 1"
+  };
+  const tokens = [
+    "BANK_ACCOUNT_NAME", "BANK_NAME", "BANK_ACCOUNT_NUMBER", "BANK_ROUTING_NUMBER",
+    "BANK_ROUTING_NUMBER_PAPER_ELECTRONIC", "BANK_ROUTING_NUMBER_WIRES",
+    "BANK_ACCOUNT_TYPE", "PAYMENT_MEMO"
+  ];
+  const f = fixture({ templateText: [...required, ...tokens].map(token => "{{" + token + "}}").join("\n") });
+  const settings = { ...f.settings(), payment };
+  const state = f.configure(settings);
+  assert.deepEqual(clone(state.settings.payment), payment);
+  f.api.previewRentInvoice(state.revision);
+  Object.values(payment).forEach(value => assert.ok(f.sections[0].text.includes(value)));
+  assert.equal(f.logs.length, 0);
+  assert.equal(f.emails.length, 0);
+  assert.deepEqual(clone(f.api.exportRentData().settings.payment), payment);
+  f.asUser("bob");
+  assert.equal(f.api.getRentDashboard().settings.payment.accountNumber, "");
+});
+
+test("empty payment tokens are optional, but invalid bank input fails explicitly", () => {
+  const f = fixture({ templateText: [...required, "BANK_ACCOUNT_NUMBER", "PAYMENT_MEMO"]
+    .map(token => "{{" + token + "}}").join("\n") });
+  const state = f.configure();
+  f.api.previewRentInvoice(state.revision);
+  assert.doesNotMatch(f.sections[0].text, /\{\{/);
+  const payment = clone(state.settings.payment);
+  for (const [key, value] of [
+    ["routingNumber", "12345678"], ["routingNumberPaperElectronic", "1234567890"],
+    ["routingNumberWires", "abcdefghi"], ["accountNumber", 12345678],
+    ["accountType", "investment"], ["memo", "x".repeat(301)]
+  ]) {
+    assert.throws(() => f.configure({ ...f.settings(), payment: { ...payment, [key]: value } }));
+  }
+  const savings = f.configure({ ...f.settings(), payment: { ...payment, accountType: "savings" } });
+  assert.equal(savings.settings.payment.accountType, "savings");
+});

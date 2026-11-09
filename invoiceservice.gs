@@ -39,6 +39,7 @@ class RentInvoiceServices {
       LANDLORD_NAME: settings.landlord.name,
       LANDLORD_ADDRESS: settings.landlord.address,
       LANDLORD_PHONE: settings.landlord.phone,
+      LANDLORD_EMAIL: settings.landlord.email,
       PROPERTY_ADDRESS: settings.property.address,
       DATE_ISSUED: context.dateIssued,
       RENT_PERIOD: context.rentPeriod,
@@ -46,7 +47,15 @@ class RentInvoiceServices {
       RENT_AMOUNT: this.formatCurrency(settings.property.amount, settings),
       FEES: this.formatCurrency(settings.property.fees, settings),
       TOTAL: this.formatCurrency(Math.round((settings.property.amount + settings.property.fees) * 100) / 100, settings),
-      INVOICE_NUMBER: context.invoiceNumber
+      INVOICE_NUMBER: context.invoiceNumber,
+      BANK_ACCOUNT_NAME: settings.payment.accountName,
+      BANK_NAME: settings.payment.bankName,
+      BANK_ACCOUNT_NUMBER: settings.payment.accountNumber,
+      BANK_ROUTING_NUMBER: settings.payment.routingNumber,
+      BANK_ROUTING_NUMBER_PAPER_ELECTRONIC: settings.payment.routingNumberPaperElectronic,
+      BANK_ROUTING_NUMBER_WIRES: settings.payment.routingNumberWires,
+      BANK_ACCOUNT_TYPE: settings.payment.accountType,
+      PAYMENT_MEMO: settings.payment.memo
     };
   }
 

@@ -3,6 +3,7 @@ import { callServer, demoMode } from "./api.js";
 import { SettingsForm } from "./components/SettingsForm.jsx";
 import { InvoicePanel } from "./components/InvoicePanel.jsx";
 import { History } from "./components/History.jsx";
+import { House, RotateCw, LockKeyhole, X } from "lucide-react";
 
 export function SettingsApp() {
   const [data, setData] = useState(null);
@@ -61,9 +62,11 @@ export function SettingsApp() {
   }
 
   return (
-    <main>
-      <header><div><p className="eyebrow">GOOGLE DOCS ADD-ON</p><h1>Rent Invoice Manager</h1><p>Your invoices. Your Google account. No spreadsheet required.</p></div>
-        <button onClick={refresh} disabled={busy || dirty}>Reload</button></header>
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-10">
+      <header className="mb-9 flex items-start justify-between gap-4 border-b border-neutral-200 pb-7">
+        <div><div className="mb-4 flex items-center gap-2 text-coral-600"><House size={24} aria-hidden="true" /><p className="eyebrow">A LITTLE LESS ADMIN. A LOT MORE EASE.</p></div>
+          <h1>Rent Invoice Manager</h1><p className="mt-2">Your invoices. Your Google account. No spreadsheet required.</p></div>
+        <button onClick={refresh} disabled={busy || dirty}><RotateCw size={16} aria-hidden="true" /><span className="hidden sm:inline">Reload</span><span className="sr-only sm:hidden">Reload</span></button></header>
       {demoMode && <p className="message warning">LOCAL DEMO: Fictional, in-memory data. No Google access, PDFs, real schedules, or emails. Reloading resets changes.</p>}
       {error && <p className="message error" role="alert">{error}</p>}
       {notice && <p className="message success" role="status">{notice}</p>}
@@ -87,7 +90,9 @@ export function SettingsApp() {
             }, enabled ? "Monthly automation enabled." : "Automation paused.")} />
         </div>
         <History history={data.history} onExport={exportData} busy={busy || dirty} />
-        <footer>Settings and invoice history are private to your Google account. Invoices bill the following month. <button onClick={() => globalThis.google?.script?.host?.close()}>Close</button></footer>
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-neutral-200 pt-6">
+          <p className="flex items-start gap-2 text-xs"><LockKeyhole size={15} className="shrink-0" aria-hidden="true" />Settings and invoice history are private to your Google account. Invoices bill the following month.</p>
+          <button onClick={() => globalThis.google?.script?.host?.close()}><X size={15} aria-hidden="true" />Close</button></footer>
       </>}
     </main>
   );

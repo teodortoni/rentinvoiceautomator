@@ -3,6 +3,10 @@ const initial = {
   tenant: { name: "Example Tenant", address: "100 Example Street", phone: "", email: "tenant@example.com" },
   landlord: { name: "Example Landlord", address: "200 Example Avenue", phone: "", email: "owner@example.com" },
   property: { address: "100 Example Street, Unit 1", amount: 1500, fees: 0 },
+  payment: {
+    accountName: "", bankName: "", accountNumber: "", routingNumber: "",
+    routingNumberPaperElectronic: "", routingNumberWires: "", accountType: "", memo: ""
+  },
   dueDay: 1, sendDay: 25, sendHour: 9, timezone: "America/New_York",
   currency: "USD", invoices: { prefix: "RENT", suffix: 1 }
 };

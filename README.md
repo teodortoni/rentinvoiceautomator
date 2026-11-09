@@ -6,12 +6,12 @@ A React settings dialog for one tenant/property per landlord account. Users inst
 
 The project is a **Google Docs Editor add-on**, not a standalone web app or a card-based Google Workspace add-on.
 
-- **React interface:** [ui/](./ui/) contains the settings dialog, with separate components for configuration, preview/delivery controls, and invoice history. Users manage one tenant/property per Google account without editing code or spreadsheets.
+- **React interface:** [ui/](./ui/) contains the Tailwind-styled settings dialog, with separate components for configuration, preview/delivery controls, and invoice history. Tenant, Landlord, Invoice, Template, and Payment options are independently collapsible. The Airbnb-inspired design uses coral accents, rounded cards, and bundled Lucide icons, without external fonts or runtime CDNs.
 - **Apps Script backend:** handles the Docs add-on menu, dialog requests, server-side validation, invoice generation, sending, and scheduling. The React interface calls it through `google.script.run`.
 - **Per-user persistence:** validated settings, invoice history, and sequence counters are stored in **User Properties**. User locks protect concurrent operations, and configuration revisions prevent stale edits from overwriting newer settings.
 - **Document generation:** a private Google Docs template is copied, populated with supported tokens, and exported to PDF in the user's chosen Drive folder. The master template is never overwritten.
 - **Email and automation:** MailApp sends invoices without Gmail inbox access. Each user explicitly enables their own hourly schedule checks; billing-month records prevent duplicate or ambiguous sends.
-- **Build and deployment:** [scripts/build.mjs](./scripts/build.mjs) bundles React and CSS into a self-contained HTML dialog. [appsscript.json](./appsscript.json) defines the runtime and permissions; clasp uploads the backend, generated dialog, and manifest.
+- **Build and deployment:** [scripts/build.mjs](./scripts/build.mjs) compiles Tailwind CSS through PostCSS and bundles it with React into a self-contained HTML dialog. [appsscript.json](./appsscript.json) defines the runtime and permissions; clasp uploads the backend, generated dialog, and manifest.
 - **Local verification:** [tests/](./tests/) covers backend behavior, account isolation, React interactions, and clasp packaging. [scripts/dev.mjs](./scripts/dev.mjs) serves a clearly marked, fictional-data demo that is excluded from production builds.
 
 Each landlord completes onboarding and authorizes access to their own Google account. Previewing creates a private PDF without sending an email or advancing invoice numbering.
@@ -85,6 +85,23 @@ Required tokens:
 Optional tokens:
 
 `{{TENANT_ADDRESS}}`, `{{TENANT_PHONE}}`, `{{LANDLORD_NAME}}`, `{{LANDLORD_ADDRESS}}`, `{{LANDLORD_PHONE}}`, `{{PROPERTY_ADDRESS}}`, `{{DATE_ISSUED}}`, `{{RENT_AMOUNT}}`, `{{FEES}}`
+
+Optional payment tokens (configured in **Payment options**):
+
+| Token | Payment field |
+|---|---|
+| `{{BANK_ACCOUNT_NAME}}` | Name on bank account |
+| `{{BANK_NAME}}` | Bank name |
+| `{{BANK_ACCOUNT_NUMBER}}` | Account number |
+| `{{BANK_ROUTING_NUMBER}}` | Routing number |
+| `{{BANK_ROUTING_NUMBER_PAPER_ELECTRONIC}}` | Routing number for paper and electronic payments |
+| `{{BANK_ROUTING_NUMBER_WIRES}}` | Routing number for wires |
+| `{{BANK_ACCOUNT_TYPE}}` | `checking` or `savings` |
+| `{{PAYMENT_MEMO}}` | Payment memo |
+
+Payment fields are optional; blank values replace their tokens with empty text. Existing saved configurations gain empty payment fields automatically. Routing numbers, when supplied, must be nine digits. Account and routing numbers remain strings to preserve leading zeros. Account numbers are masked in the settings UI until **Show account number** is selected; this is a display safeguard, not encryption.
+
+Only add bank tokens to templates when you intend to share those details: **the generated PDF contains full values and is emailed to the tenant and landlord**. PDF previews, configured templates containing literal banking details, and exported private JSON backups may also contain bank information. Store backups securely, keep template examples fictional, and verify all payment instructions before sending. The add-on provides instructions only; it does not process payments.
 
 Keep tokens contiguous, without splitting them across differently formatted text runs. Missing required or unknown tokens stop generation.
 
