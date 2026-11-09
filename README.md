@@ -2,17 +2,19 @@
 
 A React settings dialog for one tenant/property per landlord account. Users install the add-on, open Google Docs, and manage configuration without code, local JSON, or spreadsheets.
 
-## Architecture and review changes
+## Architecture
 
-- [main.gs](./main.gs): Editor add-on `onOpen`/`onInstall` lifecycle, HTML dialog and RPC functions.
-- [configs.gs](./configs.gs): validated per-user configuration and persistence using **User Properties**, never shared Script Properties.
-- [invoiceservice.gs](./invoiceservice.gs): billing dates, template replacement, PDF previews, sending and invoice history.
-- [trigger.gs](./trigger.gs): opt-in per-user hourly trigger checking the user's local send day and hour.
-- [ui/](./ui/): React components for settings, preview/delivery, and history/backup.
+The project is a **Google Docs Editor add-on**, not a standalone web app or a card-based Google Workspace add-on.
 
-The former hard-coded personal configuration is removed from distributable code. It is not automatically imported into other users' accounts. Each landlord completes onboarding and grants their own Google permissions. Existing standalone Script Properties, suffixes and sent markers are **not migrated**: this add-on is a separate installation. Do not enable it alongside your old rent sender. Disable the old trigger first, and do not send the same billing month from both projects.
+- **React interface:** [ui/](./ui/) contains the settings dialog, with separate components for configuration, preview/delivery controls, and invoice history. Users manage one tenant/property per Google account without editing code or spreadsheets.
+- **Apps Script backend:** handles the Docs add-on menu, dialog requests, server-side validation, invoice generation, sending, and scheduling. The React interface calls it through `google.script.run`.
+- **Per-user persistence:** validated settings, invoice history, and sequence counters are stored in **User Properties**. User locks protect concurrent operations, and configuration revisions prevent stale edits from overwriting newer settings.
+- **Document generation:** a private Google Docs template is copied, populated with supported tokens, and exported to PDF in the user's chosen Drive folder. The master template is never overwritten.
+- **Email and automation:** MailApp sends invoices without Gmail inbox access. Each user explicitly enables their own hourly schedule checks; billing-month records prevent duplicate or ambiguous sends.
+- **Build and deployment:** [scripts/build.mjs](./scripts/build.mjs) bundles React and CSS into a self-contained HTML dialog. [appsscript.json](./appsscript.json) defines the runtime and permissions; clasp uploads the backend, generated dialog, and manifest.
+- **Local verification:** [tests/](./tests/) covers backend behavior, account isolation, React interactions, and clasp packaging. [scripts/dev.mjs](./scripts/dev.mjs) serves a clearly marked, fictional-data demo that is excluded from production builds.
 
-The review also corrected ignored due-day settings, timezone-sensitive month boundaries, shared invoice numbering, missing concurrency protection, and swallowed delivery failures. Previews now open a private PDF instead of creating Gmail drafts, allowing **send-only MailApp permissions** without mailbox access.
+Each landlord completes onboarding and authorizes access to their own Google account. Previewing creates a private PDF without sending an email or advancing invoice numbering.
 
 ## Local development
 
@@ -37,7 +39,7 @@ The installed clasp toolchain currently reports 8 upstream dependency audit warn
    { "scriptId": "YOUR_SCRIPT_ID", "rootDir": "." }
    ```
 
-4. Run `npm run push`, then `npm run clasp:status`. Only the four `.gs` files, generated `Settings.html` and manifest are uploaded.
+4. Run `npm run push`, then `npm run clasp:status`. The Apps Script backend, generated HTML dialog, and manifest are uploaded.
 5. In Apps Script, choose **Deploy > Test deployments > Editor add-on**, select Google Docs and a private test document, and launch the test. This is an **Editor add-on**, not a web-app deployment and not a CardService Workspace add-on.
 6. In Docs use **Extensions > Rent Invoice Manager > Settings & invoices** (test menu naming may differ). Authorize when prompted.
 7. Fill settings, select the current Doc as template, enter a private output folder ID, and save. Use your own email for all test sends.
@@ -50,6 +52,32 @@ The current-document shortcut avoids editing code; output folder/template IDs ca
 
 The add-on copies your master Doc and leaves it untouched. Body, tables, headers, footers, and document tabs are processed.
 
+### Shared starter template
+
+**Public template link: pending.** A sanitized starter Google Doc has not yet been linked in this README.
+
+Distribute the starter template as a **view-only Google Doc** with a "Make a copy" link in this README. Use this URL format after creating the public example:
+
+```text
+https://docs.google.com/document/d/TEMPLATE_ID/copy
+```
+
+Replace `TEMPLATE_ID` with the sanitized public example's ID, not a private invoice's ID. Before sharing it, remove real names, addresses, contact details, banking instructions, and any other private information. Use fictional examples and the supported tokens below.
+
+To use the starter template:
+
+1. Follow the copy link to create your own editable Google Doc.
+2. Customize its layout and payment instructions while retaining the required tokens.
+3. Open your copy in Google Docs and launch the add-on.
+4. Choose **Use the current Google Doc as template**, select your private PDF output folder, and save settings.
+5. Preview the generated PDF before sending or enabling automation.
+
+The Google Doc is a separate resource: clasp does not deploy it with the code. Keep the token reference in this repository; an optional sanitized `.docx` export or example layout can help contributors review template changes. Neither an export nor automatic template creation is currently included.
+
+Version shared starter templates alongside relevant releases. Existing users keep their private copies, so updating the public example does not alter their invoices. A link inside the add-on UI can be added when the public template is available; the current UI only provides the current-document selection shortcut.
+
+### Supported tokens
+
 Required tokens:
 
 `{{TENANT_NAME}}`, `{{RENT_PERIOD}}`, `{{DUE_DATE}}`, `{{TOTAL}}`, `{{INVOICE_NUMBER}}`
@@ -59,6 +87,8 @@ Optional tokens:
 `{{TENANT_ADDRESS}}`, `{{TENANT_PHONE}}`, `{{LANDLORD_NAME}}`, `{{LANDLORD_ADDRESS}}`, `{{LANDLORD_PHONE}}`, `{{PROPERTY_ADDRESS}}`, `{{DATE_ISSUED}}`, `{{RENT_AMOUNT}}`, `{{FEES}}`
 
 Keep tokens contiguous, without splitting them across differently formatted text runs. Missing required or unknown tokens stop generation.
+
+### Delivery and storage
 
 Invoices cover the following month. Due days clamp to that month's last day; send days are limited to 1-28. Money uses the chosen currency and two-decimal inputs. After the first successful send, the per-user sequence advances; changing the starting number does not reset it.
 
