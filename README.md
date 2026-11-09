@@ -59,7 +59,7 @@ The add-on copies your master Doc and leaves it untouched. Body, tables, headers
 Distribute the starter template as a **view-only Google Doc** with a "Make a copy" link in this README. Use this URL format after creating the public example:
 
 ```text
-https://docs.google.com/document/d/TEMPLATE_ID/copy
+https://docs.google.com/document/d/1c2-dyFbzASZvXkixldpGEOhCsnTT0q1U0TvjH6N6IP0/copy
 ```
 
 Replace `TEMPLATE_ID` with the sanitized public example's ID, not a private invoice's ID. Before sharing it, remove real names, addresses, contact details, banking instructions, and any other private information. Use fictional examples and the supported tokens below.
